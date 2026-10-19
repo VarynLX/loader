@@ -1,3 +1,16 @@
+-- Discord START
+local success, err = pcall(function()
+    loadstring(game:HttpGet(
+        "https://raw.githubusercontent.com/VarynLX/loader/refs/heads/main/discord.lua",
+        true
+    ))()
+end)
+
+if not success then
+    warn("[VarynLX] Discord script error: " .. tostring(err))
+end
+-- Discord END
+
 if getgenv and getgenv().VarynLX_LOADED then
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
