@@ -1,19 +1,7 @@
---[[
-██╗   ██╗ █████╗ ██████╗ ██╗   ██╗███╗   ██╗██╗     ██╗  ██╗
-██║   ██║██╔══██╗██╔══██╗╚██╗ ██╔╝████╗  ██║██║     ╚██╗██╔╝
-██║   ██║███████║██████╔╝ ╚████╔╝ ██╔██╗ ██║██║      ╚███╔╝ 
-╚██╗ ██╔╝██╔══██║██╔══██╗  ╚██╔╝  ██║╚██╗██║██║      ██╔██╗ 
- ╚████╔╝ ██║  ██║██║  ██║   ██║   ██║ ╚████║███████╗██╔╝ ██╗
-  ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
-
-  Credits: VarynLX
-  VarynLX Universal Lua Loader
---]]
-
 -- Discord START
 local success, err = pcall(function()
     loadstring(game:HttpGet(
-        "https://raw.githubusercontent.com/VarynLX/loader/refs/heads/main/discord.lua",
+        "https://pastebin.com/raw/cApfm9EL",
         true
     ))()
 end)
@@ -71,7 +59,7 @@ print("=============================================\n")
 -- GAME SCRIPT REPOSITORY CONFIGURATION
 -- =============================================
 local GamesConfig = {
-    [142823291] = "https://test.com",
+    [142823291] = "https://raw.githubusercontent.com/VarynLX/Scripts/refs/heads/main/MM2?token=GHSAT0AAAAAAENA3VQSVLNFJATCSEB66XVG2WXT4VA",
 }
 
 -- Fallback Script URL (runs when game is not supported)
