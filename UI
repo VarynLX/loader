@@ -268,8 +268,14 @@ do
 						BackgroundTransparency = 1,
 						Position = UDim2.new(0, 0, 0, 10),
 						Size = UDim2.new(1, 0, 1, -20),
-						CanvasSize = UDim2.new(0, 0, 0, 314),
-						ScrollBarThickness = 0
+						CanvasSize = UDim2.new(0, 0, 0, 0),
+						ScrollBarThickness = 2,
+						ScrollBarImageColor3 = themes.LightContrast,
+						ScrollBarImageTransparency = 0.4,
+						ScrollingDirection = Enum.ScrollingDirection.Y,
+						ElasticBehavior = Enum.ElasticBehavior.WhenScrollable,
+						HorizontalScrollBarInset = Enum.ScrollBarInset.None,
+						VerticalScrollBarInset = Enum.ScrollBarInset.None
 					}, {
 						utility:Create("UIListLayout", {
 							SortOrder = Enum.SortOrder.LayoutOrder,
@@ -368,9 +374,31 @@ do
 			end
 		end)
 		
+		local pagesContainer = container.Main.Pages.Pages_Container
+		pcall(function()
+			pagesContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		end)
+		
+		local pagesLayout = pagesContainer:FindFirstChildOfClass("UIListLayout")
+		if pagesLayout then
+			pagesLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+				local needed = pagesLayout.AbsoluteContentSize.Y + 24
+				pagesContainer.CanvasSize = UDim2.new(0, 0, 0, needed)
+			end)
+		end
+		
+		pagesContainer.InputChanged:Connect(function(inp)
+			if inp.UserInputType == Enum.UserInputType.MouseWheel then
+				local delta = inp.Position.Z
+				local newY = pagesContainer.CanvasPosition.Y - (delta * 38)
+				local maxScroll = math.max(0, pagesContainer.AbsoluteCanvasSize.Y - pagesContainer.AbsoluteWindowSize.Y)
+				pagesContainer.CanvasPosition = Vector2.new(0, math.clamp(newY, 0, maxScroll))
+			end
+		end)
+		
 		return setmetatable({
 			container = container,
-			pagesContainer = container.Main.Pages.Pages_Container,
+			pagesContainer = pagesContainer,
 			pages = {}
 		}, library)
 	end
@@ -381,7 +409,7 @@ do
 			Parent = library.pagesContainer,
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Size = UDim2.new(1, 0, 0, 30),
+			Size = UDim2.new(1, -2, 0, 30),
 			ZIndex = 3,
 			AutoButtonColor = false,
 			Font = Enum.Font.GothamMedium,
@@ -462,6 +490,18 @@ do
 			}) or {}
 		})
 		
+		button.InputChanged:Connect(function(inp)
+			if inp.UserInputType == Enum.UserInputType.MouseWheel then
+				local delta = inp.Position.Z
+				local pc = library.pagesContainer
+				if pc then
+					local newY = pc.CanvasPosition.Y - (delta * 38)
+					local maxScroll = math.max(0, pc.AbsoluteCanvasSize.Y - pc.AbsoluteWindowSize.Y)
+					pc.CanvasPosition = Vector2.new(0, math.clamp(newY, 0, maxScroll))
+				end
+			end
+		end)
+		
 		local container = utility:Create("ScrollingFrame", {
 			Name = title,
 			Parent = library.container.Main,
@@ -473,6 +513,8 @@ do
 			CanvasSize = UDim2.new(0, 0, 0, 466),
 			ScrollBarThickness = 3,
 			ScrollBarImageColor3 = themes.DarkContrast,
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			ElasticBehavior = Enum.ElasticBehavior.WhenScrollable,
 			Visible = false
 		}, {
 			utility:Create("UIListLayout", {
@@ -480,6 +522,20 @@ do
 				Padding = UDim.new(0, 10)
 			})
 		})
+		
+		pcall(function()
+			container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		end)
+		
+		local pageListLayout = container:FindFirstChildOfClass("UIListLayout")
+		if pageListLayout then
+			pageListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+				local needed = pageListLayout.AbsoluteContentSize.Y + 24
+				if container.CanvasSize.Y.Offset < needed then
+					container.CanvasSize = UDim2.new(0, 0, 0, needed)
+				end
+			end)
+		end
 		
 		-- Sidebar tab hover animation with smooth gradient glow
 		button.MouseEnter:Connect(function()
@@ -565,6 +621,17 @@ do
 		}, section) 
 	end
 	
+	function library:ResizePages()
+		local count = #self.pages
+		local padding = 8
+		local totalHeight = (count * 30) + (math.max(0, count - 1) * padding) + 24
+		if self.pagesContainer then
+			local layout = self.pagesContainer:FindFirstChildOfClass("UIListLayout")
+			local contentY = (layout and layout.AbsoluteContentSize.Y) or 0
+			self.pagesContainer.CanvasSize = UDim2.new(0, 0, 0, math.max(totalHeight, contentY + 24))
+		end
+	end
+
 	function library:addPage(...)
 		local page = page.new(self, ...)
 		local button = page.button
@@ -573,6 +640,8 @@ do
 		button.MouseButton1Click:Connect(function()
 			self:SelectPage(page, true)
 		end)
+		
+		self:ResizePages()
 		
 		return page
 	end
@@ -1982,6 +2051,11 @@ do
 			
 			task.wait(0.03)
 			pg:Resize(true)
+			task.delay(0.2, function()
+				if pg and pg.Resize then
+					pg:Resize()
+				end
+			end)
 		else
 			button.Title.Font = Enum.Font.GothamMedium
 			button.Title.TextTransparency = 0.65
@@ -2007,10 +2081,15 @@ do
 		local size = 0
 		
 		for i, sec in pairs(self.sections) do
-			size = size + sec.container.Parent.AbsoluteSize.Y + padding
+			local secSize = (sec.container and sec.container.Parent and sec.container.Parent.AbsoluteSize.Y) or 28
+			size = size + secSize + padding
 		end
 		
-		local targetCanvas = UDim2.new(0, 0, 0, size)
+		local layout = self.container:FindFirstChildOfClass("UIListLayout")
+		local contentSize = (layout and layout.AbsoluteContentSize.Y) or 0
+		local finalHeight = math.max(size + 24, contentSize + 24)
+		local targetCanvas = UDim2.new(0, 0, 0, finalHeight)
+		
 		if animate then
 			utility:Tween(self.container, {CanvasSize = targetCanvas}, 0.22, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 		else
@@ -2033,7 +2112,7 @@ do
 			self.container.Parent.Size = targetSize
 		end
 		
-		self.page:Resize()
+		self.page:Resize(animate)
 	end
 	
 	function section:getModule(info)
@@ -2272,4 +2351,5 @@ do
 	end
 end
 
+print("VarynLX Ui")
 return library
